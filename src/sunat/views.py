@@ -7,10 +7,35 @@ from rest_framework.exceptions import NotFound, APIException
 from sunat.serializers import RUCSerializer, DNISerializer
 from sunat.models import RUC, DNI
 
+from django.http import HttpResponse
+import requests
+from bs4 import BeautifulSoup
 
 # docs: https://www.django-rest-framework.org/api-guide/generic-views/#retrieveapiview
 #       https://medium.com/the-andela-way/creating-a-djangorest-api-using-djangorestframework-part-2-1231fe949795
 #       https://andela.com/blog-posts/how-to-use-django-rest-framework-apiview-to-create-a-django-api-part-2
+
+# To do:
+#    clean temporal files
+def download_and_extract_padron():
+    base_URL = "https://www.sunat.gob.pe/descargaPRR/"
+
+    r = requests.get(base_URL + "mrc137_padron_reducido.html")
+    r.content
+
+    soup = BeautifulSoup(r.content, 'html.parser')
+
+    # find get href of the file_name
+    link = soup.find('a', string='padrón_reducido_RUC.zip' )['href']
+
+    # get the file(response object)
+    file = requests.get(link)
+    open(link.split('/')[-1], 'wb').write(file.content)
+
+    file_name = 'padron_reducido_ruc.zip'
+    with zipfile.ZipFile(file_name, 'r') as zip_ref:
+        zip_ref.extractall()
+
 class DNIDetail(generics.RetrieveAPIView):
     queryset = DNI.objects.all()
     serializer_class = DNISerializer
