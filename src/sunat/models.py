@@ -32,21 +32,28 @@ class RUC(models.Model):
     condicion_domicilio = models.CharField(max_length=200)
 
     direccion = models.TextField(blank=True, null=True)
+    '''
+    RUC
+    NOMBRE O RAZÓN SOCIAL
+    ESTADO DEL CONTRIBUYENTE
+    CONDICIÓN DE DOMICILIO
+    UBIGEO
+    *TIPO DE VÍA
+    **NOMBRE DE VÍA
+    *****CÓDIGO DE ZONA
+    *******TIPO DE ZONA
+    NÚMERO
+    INTERIOR
+    ****LOTE
+    DEPARTAMENTO
+    ***MANZANA
+    KILÓMETRO
+    Direccion = tipo de via + nombre de via + mz + lt + codigo de zona + tipo de zona + numero + interior
+    '''
     ubigeo = models.CharField(max_length=200, blank=True, null=True)
     departamento = models.CharField(max_length=200, blank=True, null=True)
     provincia = models.CharField(max_length=200, blank=True, null=True)
     distrito = models.CharField(max_length=200, blank=True, null=True)
-
-    tipo_via = models.CharField(max_length=200, blank=True, null=True)
-    nombre_via = models.CharField(max_length=200, blank=True, null=True)
-    codigo_zona = models.CharField(max_length=200, blank=True, null=True)
-    tipo_zona = models.CharField(max_length=200, blank=True, null=True)
-    numero_dir = models.CharField(max_length=200, blank=True, null=True)
-    interior = models.CharField(max_length=200, blank=True, null=True)
-    lote = models.CharField(max_length=200, blank=True, null=True)
-    departamento = models.CharField(max_length=200, blank=True, null=True)
-    manzana = models.CharField(max_length=200, blank=True, null=True)
-    kilometro = models.CharField(max_length=200, blank=True, null=True)
 
     def __str__(self):
         return str(self.numero) + ": " + self.razon_social
@@ -54,7 +61,6 @@ class RUC(models.Model):
     class Meta:
         verbose_name_plural = "RUCs"
         ordering = ['numero']
-        
 
 
 # TODO: Crear modelos para el ubigeo (departamento, provincia, distrito)

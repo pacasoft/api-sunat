@@ -6,9 +6,13 @@ from rest_framework.exceptions import NotFound, APIException
 
 from sunat.serializers import RUCSerializer, DNISerializer
 from sunat.models import RUC, DNI
+from rest_framework.decorators import api_view
 
 from django.http import HttpResponse
 import requests
+import zipfile
+import pandas as pd
+import os
 from bs4 import BeautifulSoup
 
 # docs: https://www.django-rest-framework.org/api-guide/generic-views/#retrieveapiview
@@ -17,7 +21,10 @@ from bs4 import BeautifulSoup
 
 # To do:
 #    clean temporal files
+
+
 def download_and_extract_padron():
+    print('started download_and_extract_padron')
     base_URL = "https://www.sunat.gob.pe/descargaPRR/"
 
     r = requests.get(base_URL + "mrc137_padron_reducido.html")
@@ -25,16 +32,33 @@ def download_and_extract_padron():
 
     soup = BeautifulSoup(r.content, 'html.parser')
 
-    # find get href of the file_name
-    link = soup.find('a', string='padrón_reducido_RUC.zip' )['href']
+    # find the file_name
+    link = soup.find('a', string='padrón_reducido_RUC.zip')['href']
 
-    # get the file(response object)
+    # get the file
     file = requests.get(link)
     open(link.split('/')[-1], 'wb').write(file.content)
 
     file_name = 'padron_reducido_ruc.zip'
     with zipfile.ZipFile(file_name, 'r') as zip_ref:
         zip_ref.extractall()
+        unzipped_file = zip_ref.namelist()
+    # os.remove(file_name)
+    print('finished download_and_extract_padron')
+
+    return unzipped_file
+
+
+@api_view(['GET'])
+def export_to_sqlite(request):
+    print('started export_to_sqlite')
+    file_name = download_and_extract_padron()
+    df = pd.read_csv(file_name[0], delimiter='|', encoding='latin-1', on_bad_lines='warn',
+                     low_memory=False)
+    # os.remove(file_name)
+    print(df.tail())
+    print('finished export_to_sqlite')
+
 
 class DNIDetail(generics.RetrieveAPIView):
     queryset = DNI.objects.all()

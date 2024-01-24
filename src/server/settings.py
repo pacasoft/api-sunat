@@ -37,12 +37,20 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django_crontab'
 
     'rest_framework',  # Django REST Framework
     'django_extensions',
 
     'sunat',
 ]
+
+# CRONJOBS = [
+#     # Run every day at midnight
+#     ('55 23 * * *', 'tasks.check_comprobantes_enviados'),
+#     # Cron job for checking if there are any pending comprobantes at 11 50 pm
+#     ('50 23 * * *', 'tasks.enviar_comprobantes_pendientes'),
+# ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
