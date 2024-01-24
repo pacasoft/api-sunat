@@ -54,6 +54,7 @@ class RUC(models.Model):
     class Meta:
         verbose_name_plural = "RUCs"
         ordering = ['numero']
+        
 
 
 # TODO: Crear modelos para el ubigeo (departamento, provincia, distrito)

@@ -18,16 +18,17 @@ class DNIDetail(generics.RetrieveAPIView):
 
     def get_object(self):
         try:
+            numero = self.kwargs['numero']  # get the DNI from the URL
             return super().get_object()
         except Http404:
-            print("DNI not found")
+            print("DNI not found:", numero)
 
             raise NotFound({
                 "statusCode": 404,
                 "body": {
                     "errors": [
                         {
-                            "message": "El DNI ingresado no existe o no es válido"
+                            "message": "El DNI ("+numero+") ingresado no existe o no es válido"
                         }
                     ]
                 }
@@ -61,16 +62,17 @@ class RUCDetail(generics.RetrieveAPIView):
 
     def get_object(self):
         try:
+            numero = self.kwargs['numero']  # get the DNI from the URL
             return super().get_object()
         except Http404:
-            print("RUC not found")
+            print("RUC not found:", numero)
 
             raise NotFound({
                 "statusCode": 404,
                 "body": {
                     "errors": [
                         {
-                            "message": "El RUC ingresado no existe o no es válido"
+                            "message": f"El RUC ({numero}) ingresado no existe o no es válido"
                         }
                     ]
                 }
@@ -97,51 +99,49 @@ class RUCDetail(generics.RetrieveAPIView):
         })
 
 
-"""
-EXAMPLES FROM SUNAT.DEV
-BAD RUC: NO EXISTE
-{
-    "statusCode": 404,
-    "body": {
-        "errors": [
-            {
-            "message": "El RUC ingresado no existe o no es válido"
-            }
-        ]
-    },
-    "url-de-consulta": "https://api.sunat.dev/ruc/10712759768?apikey=7tsRb3To4HDxHOcmoPRXRMBZvRsFNdV0XdydnKgqJnsYhuh6Bg1ENv4hEOUXifac"
-}
-BAD RUC: ERROR DE CLIENTE
-{
-    "statusCode": 400,
-    "body": {
-        "errors": [
-            {
-            "message": "error en los datos ingresados -> 107127597695"
-            }
-        ]
-    },
-    "url-de-consulta": "https://api.sunat.dev/ruc/107127597695?apikey=7tsRb3To4HDxHOcmoPRXRMBZvRsFNdV0XdydnKgqJnsYhuh6Bg1ENv4hEOUXifac"
-}
-GOOD RUC:
-{
-    "statusCode": 200,
-    "body": {
-        "numeroRuc": "10712759769",
-        "datosContribuyente": {
-            "desRazonSocial": "LOPEZ CRUZ ISRAEL SANTIAGO",
-            "desNomApe": "ISRAEL SANTIAGO LOPEZ CRUZ",
-            "ubigeo": {
-                "codUbigeo": "180301",
-                "desDistrito": "ILO",
-                "desProvincia": "ILO ",
-                "desDepartamento": "MOQUEGUA "
-            },
-            "desDireccion": "MZA. C LOTE. 14 CIUDAD DEL PESCADOR",
-            "codEstado": "ACTIVO",
-            "codDomHabido": "HABIDO"
-        }
-    },
-    "url-de-consulta": "https://api.sunat.dev/ruc/10712759769?apikey=7tsRb3To4HDxHOcmoPRXRMBZvRsFNdV0XdydnKgqJnsYhuh6Bg1ENv4hEOUXifac"
-}
-"""
+# EXAMPLES FROM SUNAT.DEV
+# BAD RUC: NO EXISTE
+# {
+#     "statusCode": 404,
+#     "body": {
+#         "errors": [
+#             {
+#             "message": "El RUC ingresado no existe o no es válido"
+#             }
+#         ]
+#     },
+#     "url-de-consulta": "https://api.sunat.dev/ruc/10712759768?apikey=7tsRb3To4HDxHOcmoPRXRMBZvRsFNdV0XdydnKgqJnsYhuh6Bg1ENv4hEOUXifac"
+# }
+# BAD RUC: ERROR DE CLIENTE
+# {
+#     "statusCode": 400,
+#     "body": {
+#         "errors": [
+#             {
+#             "message": "error en los datos ingresados -> 107127597695"
+#             }
+#         ]
+#     },
+#     "url-de-consulta": "https://api.sunat.dev/ruc/107127597695?apikey=7tsRb3To4HDxHOcmoPRXRMBZvRsFNdV0XdydnKgqJnsYhuh6Bg1ENv4hEOUXifac"
+# }
+# GOOD RUC:
+# {
+#     "statusCode": 200,
+#     "body": {
+#         "numeroRuc": "10712759769",
+#         "datosContribuyente": {
+#             "desRazonSocial": "LOPEZ CRUZ ISRAEL SANTIAGO",
+#             "desNomApe": "ISRAEL SANTIAGO LOPEZ CRUZ",
+#             "ubigeo": {
+#                 "codUbigeo": "180301",
+#                 "desDistrito": "ILO",
+#                 "desProvincia": "ILO ",
+#                 "desDepartamento": "MOQUEGUA "
+#             },
+#             "desDireccion": "MZA. C LOTE. 14 CIUDAD DEL PESCADOR",
+#             "codEstado": "ACTIVO",
+#             "codDomHabido": "HABIDO"
+#         }
+#     },
+#     "url-de-consulta": "https://api.sunat.dev/ruc/10712759769?apikey=7tsRb3To4HDxHOcmoPRXRMBZvRsFNdV0XdydnKgqJnsYhuh6Bg1ENv4hEOUXifac"
+# }
