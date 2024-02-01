@@ -51,14 +51,60 @@ def download_and_extract_padron():
 
 @api_view(['GET'])
 def export_to_sqlite(request):
+    '''
+    RUC
+    NOMBRE O RAZÓN SOCIAL
+    ESTADO DEL CONTRIBUYENTE
+    CONDICIÓN DE DOMICILIO
+    UBIGEO
+    *TIPO DE VÍA
+    **NOMBRE DE VÍA
+    *****CÓDIGO DE ZONA
+    *******TIPO DE ZONA
+    NÚMERO
+    INTERIOR`
+    ****LOTE
+    DEPARTAMENTO
+    ***MANZANA
+    KILÓMETRO
+    Direccion = tipo de via + nombre de via + mz + lt + codigo de zona + tipo de zona + numero + interior
+    '''
+
     print('started export_to_sqlite')
     file_name = download_and_extract_padron()
     df = pd.read_csv(file_name[0], delimiter='|', encoding='latin-1', on_bad_lines='warn',
                      low_memory=False)
     # os.remove(file_name)
-    print(df.tail())
-    print('finished export_to_sqlite')
 
+    df['Direccion'] = pd.concat([
+        df['TIPO DE VÍA'].astype(str),
+        df['NOMBRE DE VÍA'].astype(str),
+        df['MANZANA'].astype(str),
+        df['LOTE'].astype(str),
+        df['CÓDIGO DE ZONA'].astype(str),
+        df['TIPO DE ZONA'].astype(str),
+        df['NÚMERO'].astype(str),
+        df['INTERIOR'].astype(str)
+    ], axis=1).apply(lambda row: ' '.join(row), axis=1)
+
+    df_for_sql = df[
+        ['RUC', 'NOMBRE O RAZÓN SOCIAL', 'ESTADO DEL CONTRIBUYENTE', 'CONDICIÓN DE DOMICILIO', 'Direccion', 'UBIGEO',
+        'DEPARTAMENTO']]
+
+    df_for_sql.columns = ['id', 'razon_social', 'estado_contribuyente', 'condicion_domicilio','direccion',
+                        'ubigeo','departamento']
+
+    conn = sqlite3.connect("db.sqlite3")
+    df_for_sql.to_sql("sunat_ruc", conn, if_exists='append', index=False)
+    sql_cur = conn.cursor()
+
+    quer = sql_cur.execute("SELECT * FROM sunat_ruc LIMIT 5")
+    rows = quer.fetchall()
+    for row in rows:
+        print(row)
+
+    conn.close()
+    return Response({'message': 'Export to SQLite completed successfully'})
 
 class DNIDetail(generics.RetrieveAPIView):
     queryset = DNI.objects.all()

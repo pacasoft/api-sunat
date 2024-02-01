@@ -11,3 +11,4 @@ beautifulsoup4==4.8.1
 html5lib==1.1
 requests==2.31.0
 pandas==2.1.4
+django_crontab

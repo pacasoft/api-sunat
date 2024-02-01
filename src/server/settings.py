@@ -37,11 +37,9 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'django_crontab'
-
+    'django_crontab',
     'rest_framework',  # Django REST Framework
     'django_extensions',
-
     'sunat',
 ]
 
