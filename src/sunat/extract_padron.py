@@ -38,21 +38,26 @@ class ExtractPadron:
     def export_to_sqlite(self):
         try:
             print('started export_to_sqlite')
-            
+
             file_name = self.download_and_extract_padron()
 
-            db_connection_str  = create_engine('mysql+pymysql://root:eduu@127.0.0.1:3306/mydb', echo = False)
-            engine = create_engine(db_connection_str)
+            # db_connection_str  = create_engine('mysql+pymysql://root:eduu@127.0.0.1:3306/mydb', echo = False)
+            url = 'mysql+pymysql://' + os.getenv('DB_USER', 'root') + ':' + os.getenv(
+                'DB_PASSWORD', 'eduu') + '@127.0.0.1:3306/' + os.getenv('DB_NAME', 'mydb')
+
+            engine = create_engine(
+                url, echo=False)
             conn = engine.connect()
 
             metadata = MetaData()
             metadata.reflect(bind=engine)
-            table = Table('sunat_ruc', metadata, autoload=True, autoload_with=engine)
+            table = Table('sunat_ruc', metadata,
+                          autoload_with=engine)
 
             delete_query = delete(table)
 
             result = conn.execute(delete_query)
-            
+
             conn.commit()
             conn.close()
             engine.dispose()
@@ -62,7 +67,8 @@ class ExtractPadron:
             start_time = time.time()
             for chunk in pd.read_csv(file_name[0], delimiter='|', encoding='latin-1', on_bad_lines='warn',
                                      low_memory=False, chunksize=chunksize):
-                db_connection_str  = create_engine('mysql+mysqldb://root:eduu@127.0.0.1:3306/mydb', echo = False)
+                db_connection_str = create_engine(
+                    'mysql+mysqldb://root:eduu@127.0.0.1:3306/mydb', echo=False)
                 engine = create_engine(db_connection_str)
                 conn = engine.connect()
 
@@ -96,7 +102,8 @@ class ExtractPadron:
                 print("Chunk number:", chunk_number, "completed in ",
                       time.time() - start_time, "seconds")
                 start_time = time.time()
-            db_connection_str  = create_engine('mysql+mysqldb://root:eduu@127.0.0.1:3306/mydb', echo = False)
+            db_connection_str = create_engine(
+                'mysql+mysqldb://root:eduu@127.0.0.1:3306/mydb', echo=False)
             engine = create_engine(db_connection_str)
             conn = engine.connect()
 
