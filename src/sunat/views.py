@@ -59,7 +59,7 @@ class export_to_sqlite(APIView):
     def get(self, request):
         try:
             extractPadron = ExtractPadron()
-            extractPadron.export_to_sqlite()
+            return extractPadron.export_to_sqlite()
         except Exception as e:
             print('Error in export_to_sqlite:', e)
             return Response({

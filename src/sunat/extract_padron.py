@@ -1,8 +1,8 @@
 import pandas as pd
 from rest_framework.response import Response
 import time
-import sqlite3
 import requests
+from sqlalchemy import create_engine, MetaData, Table, select
 
 import os
 os.environ['OPENBLAS_NUM_THREADS'] = '4'
@@ -38,21 +38,37 @@ class ExtractPadron:
     def export_to_sqlite(self):
         try:
             print('started export_to_sqlite')
+            
             file_name = self.download_and_extract_padron()
-            conn = sqlite3.connect("db.sqlite3")
-            sql_cur = conn.cursor()
-            quer = sql_cur.execute("DELETE FROM sunat_ruc")
-            conn.commit()  # Don't forget to replace sql_conn with your actual connection variable
+
+            db_connection_str  = create_engine('mysql+pymysql://root:eduu@127.0.0.1:3306/mydb', echo = False)
+            engine = create_engine(db_connection_str)
+            conn = engine.connect()
+
+            metadata = MetaData()
+            metadata.reflect(bind=engine)
+            table = Table('sunat_ruc', metadata, autoload=True, autoload_with=engine)
+
+            delete_query = delete(table)
+
+            result = conn.execute(delete_query)
+            
+            conn.commit()
             conn.close()
+            engine.dispose()
 
             chunksize = 10 ** 6  # adjust this value depending on your available memory
             chunk_number = 1
             start_time = time.time()
             for chunk in pd.read_csv(file_name[0], delimiter='|', encoding='latin-1', on_bad_lines='warn',
                                      low_memory=False, chunksize=chunksize):
-                conn = sqlite3.connect("db.sqlite3")
-                # check execution time
+                db_connection_str  = create_engine('mysql+mysqldb://root:eduu@127.0.0.1:3306/mydb', echo = False)
+                engine = create_engine(db_connection_str)
+                conn = engine.connect()
 
+                metadata = MetaData()
+                metadata.reflect(bind=engine)
+                # check execution time
                 print("Readding chunk number:", chunk_number)
                 chunk_number += 1
                 chunk['Direccion'] = pd.concat([
@@ -80,15 +96,23 @@ class ExtractPadron:
                 print("Chunk number:", chunk_number, "completed in ",
                       time.time() - start_time, "seconds")
                 start_time = time.time()
-            conn = sqlite3.connect("db.sqlite3")
-            sql_cur = conn.cursor()
+            db_connection_str  = create_engine('mysql+mysqldb://root:eduu@127.0.0.1:3306/mydb', echo = False)
+            engine = create_engine(db_connection_str)
+            conn = engine.connect()
 
-            quer = sql_cur.execute("SELECT * FROM sunat_ruc LIMIT 5")
-            rows = quer.fetchall()
+            metadata = MetaData()
+            metadata.reflect(bind=engine)
+
+            query = select([table]).limit(30)
+            result = conn.execute(query)
+            rows = result.fetchall()
+
             for row in rows:
                 print(row)
 
             conn.close()
+            engine.dispose()
+
             return Response({'message': 'Export to SQLite completed successfully'})
 
         except Exception as e:
