@@ -2,7 +2,9 @@ import pandas as pd
 from rest_framework.response import Response
 import time
 import requests
-from sqlalchemy import create_engine, MetaData, Table, select
+from bs4 import BeautifulSoup
+import zipfile
+from sqlalchemy import create_engine, MetaData, Table, delete
 
 import os
 os.environ['OPENBLAS_NUM_THREADS'] = '4'
@@ -10,7 +12,7 @@ os.environ['OPENBLAS_NUM_THREADS'] = '4'
 
 class ExtractPadron:
     def download_and_extract_padron(self):
-        return ["padron_reducido_ruc.txt"]
+        # return['padron_reducido.txt']
         print('started download_and_extract_padron')
         base_URL = "https://www.sunat.gob.pe/descargaPRR/"
 
@@ -30,7 +32,7 @@ class ExtractPadron:
         with zipfile.ZipFile(file_name, 'r') as zip_ref:
             zip_ref.extractall()
             unzipped_file = zip_ref.namelist()
-        # os.remove(file_name)
+        os.remove(file_name)
         print('finished download_and_extract_padron')
 
         return unzipped_file
@@ -40,35 +42,37 @@ class ExtractPadron:
             print('started export_to_sqlite')
             
             file_name = self.download_and_extract_padron()
+            table_name = 'sunat_ruc'
 
-            db_connection_str  = create_engine('mysql+pymysql://root:eduu@127.0.0.1:3306/mydb', echo = False)
-            engine = create_engine(db_connection_str)
+            mysql_connection_str  = 'mysql+pymysql://root:eduu@127.0.0.1:3306/mydb'
+            engine = create_engine(mysql_connection_str)
             conn = engine.connect()
 
             metadata = MetaData()
             metadata.reflect(bind=engine)
-            table = Table('sunat_ruc', metadata, autoload=True, autoload_with=engine)
 
-            delete_query = delete(table)
+            if table_name in metadata.tables:
+                table = Table(table_name, metadata, autoload=True, autoload_with=engine)
+                delete_query = delete(table)
+                conn.execute(delete_query)
+                print(f'{table_name} deleted')
+            else:
+                print(f'{table_name} not found')           
 
-            result = conn.execute(delete_query)
-            
             conn.commit()
             conn.close()
-            engine.dispose()
+            engine.dispose()    
 
             chunksize = 10 ** 6  # adjust this value depending on your available memory
             chunk_number = 1
             start_time = time.time()
             for chunk in pd.read_csv(file_name[0], delimiter='|', encoding='latin-1', on_bad_lines='warn',
                                      low_memory=False, chunksize=chunksize):
-                db_connection_str  = create_engine('mysql+mysqldb://root:eduu@127.0.0.1:3306/mydb', echo = False)
-                engine = create_engine(db_connection_str)
+                engine = create_engine(mysql_connection_str)
                 conn = engine.connect()
-
                 metadata = MetaData()
                 metadata.reflect(bind=engine)
-                # check execution time
+                
                 print("Readding chunk number:", chunk_number)
                 chunk_number += 1
                 chunk['Direccion'] = pd.concat([
@@ -91,25 +95,14 @@ class ExtractPadron:
 
                 df_for_sql.to_sql("sunat_ruc", conn,
                                   if_exists='append', index=False)
-                conn.commit()  # Don't forget to replace sql_conn with your actual connection variable
+                conn.commit()
                 conn.close()
                 print("Chunk number:", chunk_number, "completed in ",
                       time.time() - start_time, "seconds")
                 start_time = time.time()
-            db_connection_str  = create_engine('mysql+mysqldb://root:eduu@127.0.0.1:3306/mydb', echo = False)
-            engine = create_engine(db_connection_str)
-            conn = engine.connect()
 
-            metadata = MetaData()
-            metadata.reflect(bind=engine)
-
-            query = select([table]).limit(30)
-            result = conn.execute(query)
-            rows = result.fetchall()
-
-            for row in rows:
-                print(row)
-
+            os.remove(file_name)
+            conn.commit()
             conn.close()
             engine.dispose()
 
