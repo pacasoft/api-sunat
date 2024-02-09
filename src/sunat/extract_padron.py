@@ -40,7 +40,7 @@ class ExtractPadron:
     def export_to_sqlite(self):
         try:
             print('started export_to_sqlite')
-            
+
             file_name = self.download_and_extract_padron()
             table_name = 'sunat_ruc'
 
