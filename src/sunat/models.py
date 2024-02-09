@@ -25,7 +25,7 @@ class DNI(models.Model):
 
 class RUC(models.Model):
     id = models.AutoField(primary_key=True)
-    numero = models.CharField(max_length=11, db_index=True)
+    # numero = models.CharField(max_length=11, db_index=True)
     razon_social = models.CharField(max_length=200)
 
     estado_contribuyente = models.CharField(max_length=200)
@@ -52,15 +52,15 @@ class RUC(models.Model):
     '''
     ubigeo = models.CharField(max_length=200, blank=True, null=True)
     departamento = models.CharField(max_length=200, blank=True, null=True)
-    provincia = models.CharField(max_length=200, blank=True, null=True)
-    distrito = models.CharField(max_length=200, blank=True, null=True)
+    # provincia = models.CharField(max_length=200, blank=True, null=True)
+    # distrito = models.CharField(max_length=200, blank=True, null=True)
 
     def __str__(self):
         return str(self.numero) + ": " + self.razon_social
 
     class Meta:
         verbose_name_plural = "RUCs"
-        ordering = ['numero']
+        ordering = ['id']
 
 
 # TODO: Crear modelos para el ubigeo (departamento, provincia, distrito)

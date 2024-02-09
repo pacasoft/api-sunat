@@ -23,13 +23,13 @@ class RUCSerializer(serializers.ModelSerializer):
     class Meta:
         model = RUC
         fields = (
-            'numero',
+            # 'numero',
             'razon_social',
             'estado_contribuyente',
             'condicion_domicilio',
             'direccion',
             'ubigeo',
             'departamento',
-            'provincia',
-            'distrito',
+            # 'provincia',
+            # 'distrito',
         )

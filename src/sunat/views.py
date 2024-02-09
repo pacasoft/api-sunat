@@ -1,19 +1,23 @@
-from rest_framework.response import Response
-from rest_framework import generics
-
-from django.http import Http404
-from rest_framework.exceptions import NotFound, APIException
-
-from sunat.serializers import RUCSerializer, DNISerializer
-from sunat.models import RUC, DNI
+import time
 from rest_framework.decorators import api_view
-
+from sunat.models import RUC, DNI
+from sunat.serializers import RUCSerializer, DNISerializer
+from rest_framework.exceptions import NotFound, APIException
+from django.http import Http404
+from rest_framework import generics
+from rest_framework.response import Response
 from django.http import HttpResponse
 import requests
 import zipfile
 import pandas as pd
-import os
+from rest_framework.views import APIView
+import sqlite3
 from bs4 import BeautifulSoup
+
+from sunat.extract_padron import ExtractPadron
+import os
+os.environ['OPENBLAS_NUM_THREADS'] = '4'
+
 
 # docs: https://www.django-rest-framework.org/api-guide/generic-views/#retrieveapiview
 #       https://medium.com/the-andela-way/creating-a-djangorest-api-using-djangorestframework-part-2-1231fe949795
@@ -24,6 +28,7 @@ from bs4 import BeautifulSoup
 
 
 def download_and_extract_padron():
+    return ["padron_reducido_ruc.txt"]
     print('started download_and_extract_padron')
     base_URL = "https://www.sunat.gob.pe/descargaPRR/"
 
@@ -49,62 +54,25 @@ def download_and_extract_padron():
     return unzipped_file
 
 
-@api_view(['GET'])
-def export_to_sqlite(request):
-    '''
-    RUC
-    NOMBRE O RAZÓN SOCIAL
-    ESTADO DEL CONTRIBUYENTE
-    CONDICIÓN DE DOMICILIO
-    UBIGEO
-    *TIPO DE VÍA
-    **NOMBRE DE VÍA
-    *****CÓDIGO DE ZONA
-    *******TIPO DE ZONA
-    NÚMERO
-    INTERIOR`
-    ****LOTE
-    DEPARTAMENTO
-    ***MANZANA
-    KILÓMETRO
-    Direccion = tipo de via + nombre de via + mz + lt + codigo de zona + tipo de zona + numero + interior
-    '''
+# Python
+class export_to_sqlite(APIView):
+    def get(self, request):
+        try:
+            extractPadron = ExtractPadron()
+            extractPadron.export_to_sqlite()
+        except Exception as e:
+            print('Error in export_to_sqlite:', e)
+            return Response({
+                "statusCode": 400,
+                "body": {
+                    "errors": [
+                        {
+                            "message": "error en los datos ingresados"
+                        }
+                    ]
+                }
+            })
 
-    print('started export_to_sqlite')
-    file_name = download_and_extract_padron()
-    df = pd.read_csv(file_name[0], delimiter='|', encoding='latin-1', on_bad_lines='warn',
-                     low_memory=False)
-    # os.remove(file_name)
-
-    df['Direccion'] = pd.concat([
-        df['TIPO DE VÍA'].astype(str),
-        df['NOMBRE DE VÍA'].astype(str),
-        df['MANZANA'].astype(str),
-        df['LOTE'].astype(str),
-        df['CÓDIGO DE ZONA'].astype(str),
-        df['TIPO DE ZONA'].astype(str),
-        df['NÚMERO'].astype(str),
-        df['INTERIOR'].astype(str)
-    ], axis=1).apply(lambda row: ' '.join(row), axis=1)
-
-    df_for_sql = df[
-        ['RUC', 'NOMBRE O RAZÓN SOCIAL', 'ESTADO DEL CONTRIBUYENTE', 'CONDICIÓN DE DOMICILIO', 'Direccion', 'UBIGEO',
-        'DEPARTAMENTO']]
-
-    df_for_sql.columns = ['id', 'razon_social', 'estado_contribuyente', 'condicion_domicilio','direccion',
-                        'ubigeo','departamento']
-
-    conn = sqlite3.connect("db.sqlite3")
-    df_for_sql.to_sql("sunat_ruc", conn, if_exists='append', index=False)
-    sql_cur = conn.cursor()
-
-    quer = sql_cur.execute("SELECT * FROM sunat_ruc LIMIT 5")
-    rows = quer.fetchall()
-    for row in rows:
-        print(row)
-
-    conn.close()
-    return Response({'message': 'Export to SQLite completed successfully'})
 
 class DNIDetail(generics.RetrieveAPIView):
     queryset = DNI.objects.all()
@@ -153,7 +121,7 @@ class DNIDetail(generics.RetrieveAPIView):
 class RUCDetail(generics.RetrieveAPIView):
     queryset = RUC.objects.all()
     serializer_class = RUCSerializer
-    lookup_field = 'numero'
+    lookup_field = 'id'
 
     def get_object(self):
         try:
@@ -188,9 +156,11 @@ class RUCDetail(generics.RetrieveAPIView):
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
         serializer = self.get_serializer(instance)
+        serializer = serializer.data
+        serializer["numero"] = serializer["id"]
         return Response({
             "statusCode": 200,
-            "body": serializer.data
+            "body": serializer
         })
 
 

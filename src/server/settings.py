@@ -11,7 +11,7 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 
 from pathlib import Path
-
+import os
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -43,12 +43,10 @@ INSTALLED_APPS = [
     'sunat',
 ]
 
-# CRONJOBS = [
-#     # Run every day at midnight
-#     ('55 23 * * *', 'tasks.check_comprobantes_enviados'),
-#     # Cron job for checking if there are any pending comprobantes at 11 50 pm
-#     ('50 23 * * *', 'tasks.enviar_comprobantes_pendientes'),
-# ]
+CRONJOBS = [
+    # Run every day at midnight
+    ('10 01 * * *', 'tasks.check_comprobantes_enviados'),
+]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -90,8 +88,14 @@ WSGI_APPLICATION = 'server.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': os.getenv('DB_NAME'),
+        'USER': os.getenv('DB_USER'),
+        'PASSWORD': os.getenv('DB_PASSWORD'),
+        # default to localhost if DB_HOST is not set
+        'HOST': os.getenv('DB_HOST', 'localhost'),
+        # default to 3306 if DB_PORT is not set
+        'PORT': os.getenv('DB_PORT', '3306'),
     }
 }
 
