@@ -4,7 +4,8 @@ import time
 import requests
 from bs4 import BeautifulSoup
 import zipfile
-from sqlalchemy import create_engine, MetaData, Table, delete
+from sqlalchemy import create_engine, MetaData, Table
+from sqlalchemy.schema import drop
 
 import os
 os.environ['OPENBLAS_NUM_THREADS'] = '4'
@@ -51,14 +52,12 @@ class ExtractPadron:
             metadata = MetaData()
             metadata.reflect(bind=engine)
 
-            if table_name in metadata.tables:
-                table = Table(table_name, metadata, autoload=True, autoload_with=engine)
-                delete_query = delete(table)
-                conn.execute(delete_query)
-                print(f'{table_name} deleted')
-            else:
-                print(f'{table_name} not found')           
-
+            query_string = """
+            DROP TABLE IF EXISTS sunat_ruc;
+            """
+            query = text(query_string)
+            conn.execute(query)
+            
             conn.commit()
             conn.close()
             engine.dispose()    
@@ -66,7 +65,7 @@ class ExtractPadron:
             chunksize = 10 ** 6  # adjust this value depending on your available memory
             chunk_number = 1
             start_time = time.time()
-            for chunk in pd.read_csv(file_name[0], delimiter='|', encoding='latin-1', on_bad_lines='warn',
+            for chunk in pd.read_csv(file_name[0], delimiter='|', encoding='latin-1',quoting=3, on_bad_lines='warn',
                                      low_memory=False, chunksize=chunksize):
                 engine = create_engine(mysql_connection_str)
                 conn = engine.connect()
