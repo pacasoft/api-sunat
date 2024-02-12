@@ -5,8 +5,8 @@ import time
 import requests
 from bs4 import BeautifulSoup
 import zipfile
-from sqlalchemy import create_engine, MetaData, Table
-from sqlalchemy.schema import drop
+from sqlalchemy import create_engine, MetaData
+
 
 import os
 os.environ['OPENBLAS_NUM_THREADS'] = '4'
