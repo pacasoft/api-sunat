@@ -1,22 +1,10 @@
-import time
-from rest_framework.decorators import api_view
 from sunat.models import RUC, DNI
 from sunat.serializers import RUCSerializer, DNISerializer
 from rest_framework.exceptions import NotFound, APIException
 from django.http import Http404
 from rest_framework import generics
 from rest_framework.response import Response
-from django.http import HttpResponse
-import requests
-import zipfile
-import pandas as pd
 from rest_framework.views import APIView
-import sqlite3
-from bs4 import BeautifulSoup
-
-from sunat.extract_padron import ExtractPadron
-import os
-os.environ['OPENBLAS_NUM_THREADS'] = '4'
 
 
 # docs: https://www.django-rest-framework.org/api-guide/generic-views/#retrieveapiview
@@ -27,37 +15,11 @@ os.environ['OPENBLAS_NUM_THREADS'] = '4'
 #    clean temporal files
 
 
-def download_and_extract_padron():
-    return ["padron_reducido_ruc.txt"]
-    print('started download_and_extract_padron')
-    base_URL = "https://www.sunat.gob.pe/descargaPRR/"
-
-    r = requests.get(base_URL + "mrc137_padron_reducido.html")
-    r.content
-
-    soup = BeautifulSoup(r.content, 'html.parser')
-
-    # find the file_name
-    link = soup.find('a', string='padrón_reducido_RUC.zip')['href']
-
-    # get the file
-    file = requests.get(link)
-    open(link.split('/')[-1], 'wb').write(file.content)
-
-    file_name = 'padron_reducido_ruc.zip'
-    with zipfile.ZipFile(file_name, 'r') as zip_ref:
-        zip_ref.extractall()
-        unzipped_file = zip_ref.namelist()
-    # os.remove(file_name)
-    print('finished download_and_extract_padron')
-
-    return unzipped_file
-
-
 # Python
 class export_to_sqlite(APIView):
     def get(self, request):
         try:
+            from sunat.extract_padron import ExtractPadron
             extractPadron = ExtractPadron()
             return extractPadron.export_to_sqlite()
         except Exception as e:
@@ -121,7 +83,7 @@ class DNIDetail(generics.RetrieveAPIView):
 class RUCDetail(generics.RetrieveAPIView):
     queryset = RUC.objects.all()
     serializer_class = RUCSerializer
-    lookup_field = 'id'
+    lookup_field = 'numero'
 
     def get_object(self):
         try:
@@ -157,7 +119,7 @@ class RUCDetail(generics.RetrieveAPIView):
         instance = self.get_object()
         serializer = self.get_serializer(instance)
         serializer = serializer.data
-        serializer["numero"] = serializer["id"]
+        # serializer["id"] = serializer["id"]
         return Response({
             "statusCode": 200,
             "body": serializer
