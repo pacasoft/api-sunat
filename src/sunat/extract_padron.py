@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as pd
 from rest_framework.response import Response
 import time
 import requests
@@ -86,6 +87,7 @@ class ExtractPadron:
                 
                 print("Readding chunk number:", chunk_number)
                 chunk_number += 1
+                chunk['RUC'] = chunk['RUC'].astype(np.longlong)
                 chunk['Direccion'] = pd.concat([
                     chunk['TIPO DE VÍA'].astype(str),
                     chunk['NOMBRE DE VÍA'].astype(str),
