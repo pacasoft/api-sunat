@@ -1,13 +1,13 @@
-from sunat.models import RUC
-import sqlite3
-import zipfile
-from bs4 import BeautifulSoup
-import requests
-import time
-from rest_framework.response import Response
-import numpy as np
-import pandas as pd
 import logging
+import pandas as pd
+import numpy as np
+from rest_framework.response import Response
+import time
+import requests
+from bs4 import BeautifulSoup
+import zipfile
+import sqlite3
+from sunat.models import RUC
 import os
 os.environ['OPENBLAS_NUM_THREADS'] = '8'
 # from sqlalchemy import create_engine, MetaData, Table
@@ -108,7 +108,7 @@ class ExtractPadron:
                     # Indexes of the fields in the array
                     indexes = [5, 6, 13, 11, 7, 8, 9, 10]
 
-                    direccion = ' '.join([data[i]
+                    direccion = ' '.join([str(data[i])
                                           for i in indexes if data[i]])
                     data = {
                         'numero': data[0],
@@ -124,14 +124,14 @@ class ExtractPadron:
                     if len(data_list) % (chunksize) == 0:
                         print("Readding chunk number:", chunk_number,
                               "in ", (time.time() - start_time)/60, "minutes")
-                        logging.error("Readding chunk number: " + chunk_number +
-                                      "in " + (time.time() - start_time)/60 + " minutes")
+                        logging.error("Readding chunk number: " + str(chunk_number) +
+                                      "in " + str((time.time() - start_time)/60) + " minutes")
                         start_time = time.time()
                         RUC.objects.bulk_create(data_list)
                         print("Finished insterting data:",
                               (time.time() - start_time)/60, "minutes")
                         logging.error("Finished insterting data: " +
-                                      (time.time() - start_time)/60 + " minutes")
+                                      str((time.time() - start_time)/60) + " minutes")
                         start_time = time.time()
                         del data_list
                         data_list = []
@@ -159,14 +159,14 @@ class ExtractPadron:
             print("Time download_and_extract_padron:",
                   (time.time() - start_time)/60, "minutes")
             logging.error("Time download_and_extract_padron: " +
-                          (time.time() - start_time)/60 + " minutes")
+                          str((time.time() - start_time)/60) + " minutes")
 
             start_time = time.time()
             self.extract_active_rucs(file_name)
             print("Time extract_active_rucs:",
                   (time.time() - start_time)/60, "minutes")
             logging.error("Time extract_active_rucs: " +
-                          (time.time() - start_time)/60 + " minutes")
+                          str((time.time() - start_time)/60) + " minutes")
 
             conn = sqlite3.connect("db.sqlite3")
             sql_cur = conn.cursor()
@@ -253,6 +253,7 @@ class ExtractPadron:
 
         except Exception as e:
             print('Error in export_to_sqlite:', e)
+            logging.error('Error in export_to_sqlite:', e)
             return Response({
                 "statusCode": 400,
                 "body": {
