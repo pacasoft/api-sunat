@@ -86,16 +86,23 @@ WSGI_APPLICATION = 'server.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'mysql.connector.django',
+#         'NAME': os.getenv('DB_NAME', 'mydb'),
+#         'USER': os.getenv('DB_USER', 'root'),
+#         'PASSWORD': os.getenv('DB_PASSWORD', 'eduu$'),
+#         # default to localhost if DB_HOST is not set
+#         'HOST': os.getenv('DB_HOST', 'localhost'),
+#         # default to 3306 if DB_PORT is not set
+#         'PORT': os.getenv('DB_PORT', '3306'),
+#     }
+# }
+
 DATABASES = {
     'default': {
-        'ENGINE': 'mysql.connector.django',
-        'NAME': os.getenv('DB_NAME', 'mydb'),
-        'USER': os.getenv('DB_USER', 'root'),
-        'PASSWORD': os.getenv('DB_PASSWORD', 'eduu$'),
-        # default to localhost if DB_HOST is not set
-        'HOST': os.getenv('DB_HOST', 'localhost'),
-        # default to 3306 if DB_PORT is not set
-        'PORT': os.getenv('DB_PORT', '3306'),
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
 
