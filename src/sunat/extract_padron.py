@@ -34,7 +34,7 @@ class ExtractPadron:
             zip_ref.extractall()
             unzipped_file = zip_ref.namelist()
         os.remove(file_name)
-        print('finished download_and_extract_padron')
+        print('finished download_and_extract_padron')      
 
         return unzipped_file
 
@@ -54,10 +54,22 @@ class ExtractPadron:
 
             query_string = """
             DROP TABLE IF EXISTS sunat_ruc;
+            CREATE TABLE sunat_ruc(
+            id BIGINT AUTO_INCREMENT PRIMARY KEY,
+            razon_social VARCHAR(255), 
+            estado_contribuyente VARCHAR(255),
+            condicion_domicilio  VARCHAR(255),
+            direccion  VARCHAR(255),
+            ubigeo  VARCHAR(255),
+            departamento VARCHAR(255)
+            );
             """
-            query = text(query_string)
-            conn.execute(query)
-            
+            queries = query_string.split(';')
+
+            for query in queries:
+                if query.strip():
+                    conn.execute(text(query))
+
             conn.commit()
             conn.close()
             engine.dispose()    
