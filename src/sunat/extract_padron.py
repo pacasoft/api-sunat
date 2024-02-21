@@ -1,6 +1,4 @@
 import logging
-import pandas as pd
-import numpy as np
 from rest_framework.response import Response
 import time
 import requests
@@ -8,8 +6,6 @@ from bs4 import BeautifulSoup
 import zipfile
 import sqlite3
 from sunat.models import RUC
-import os
-os.environ['OPENBLAS_NUM_THREADS'] = '8'
 # from sqlalchemy import create_engine, MetaData, Table
 # from sqlalchemy.schema import drop
 
@@ -109,7 +105,7 @@ class ExtractPadron:
                     indexes = [5, 6, 13, 11, 7, 8, 9, 10]
 
                     direccion = ' '.join([str(data[i])
-                                          for i in indexes if data[i]])
+                                          for i in indexes if data[i] != "-"])
                     data = {
                         'numero': data[0],
                         'razon_social': data[1],
@@ -194,61 +190,6 @@ class ExtractPadron:
                 print(row)
                 logging.error(row)
 
-            return Response({'message': 'Export to SQLite completed successfully'})
-
-            conn = sqlite3.connect("db.sqlite3")
-            sql_cur = conn.cursor()
-            quer = sql_cur.execute("DELETE FROM sunat_ruc")
-            conn.commit()  # Don't forget to replace sql_conn with your actual connection variable
-            conn.close()
-
-            chunksize = 10 ** 6  # adjust this value depending on your available memory
-            chunk_number = 1
-            start_time = time.time()
-            for chunk in pd.read_csv(file_name, delimiter='|', encoding='latin-1', quoting=3, on_bad_lines='warn',
-                                     low_memory=False, chunksize=chunksize):
-                conn = sqlite3.connect("db.sqlite3")
-                # check execution time
-
-                print("Readding chunk number:", chunk_number)
-                chunk_number += 1
-                chunk['RUC'] = chunk['RUC'].astype(np.longlong)
-                chunk['Direccion'] = pd.concat([
-                    chunk['TIPO DE VÍA'].astype(str),
-                    chunk['NOMBRE DE VÍA'].astype(str),
-                    chunk['MANZANA'].astype(str),
-                    chunk['LOTE'].astype(str),
-                    chunk['CÓDIGO DE ZONA'].astype(str),
-                    chunk['TIPO DE ZONA'].astype(str),
-                    chunk['NÚMERO'].astype(str),
-                    chunk['INTERIOR'].astype(str),
-                ], axis=1).apply(lambda row: ' '.join(row), axis=1)
-
-                df_for_sql = chunk[
-                    ['RUC', 'NOMBRE O RAZÓN SOCIAL', 'ESTADO DEL CONTRIBUYENTE', 'CONDICIÓN DE DOMICILIO', 'Direccion', 'UBIGEO',
-                     'DEPARTAMENTO']]
-
-                df_for_sql.columns = ['id', 'razon_social', 'estado_contribuyente', 'condicion_domicilio', 'direccion',
-                                      'ubigeo', 'departamento']
-
-                df_for_sql.to_sql("sunat_ruc", conn,
-                                  if_exists='append', index=False)
-                conn.commit()  # Don't forget to replace sql_conn with your actual connection variable
-                conn.close()
-                print("Chunk number:", chunk_number, "completed in ",
-                      time.time() - start_time, "seconds")
-                start_time = time.time()
-                chunk_number += 1
-
-            conn = sqlite3.connect("db.sqlite3")
-            sql_cur = conn.cursor()
-
-            quer = sql_cur.execute("SELECT * FROM sunat_ruc LIMIT 5")
-            rows = quer.fetchall()
-            for row in rows:
-                print(row)
-
-            conn.close()
             return Response({'message': 'Export to SQLite completed successfully'})
 
         except Exception as e:

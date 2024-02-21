@@ -5,7 +5,7 @@ from django.http import Http404
 from rest_framework import generics
 from rest_framework.response import Response
 from rest_framework.views import APIView
-
+import requests
 
 # docs: https://www.django-rest-framework.org/api-guide/generic-views/#retrieveapiview
 #       https://medium.com/the-andela-way/creating-a-djangorest-api-using-djangorestframework-part-2-1231fe949795
@@ -36,28 +36,69 @@ class export_to_sqlite(APIView):
             })
 
 
-class DNIDetail(generics.RetrieveAPIView):
-    queryset = DNI.objects.all()
-    serializer_class = DNISerializer
-    lookup_field = 'numero'
+# {"success": true, "data": {"numero": "71275976", "nombre_completo": "LOPEZ CRUZ, ISRAEL SANTIAGO", "nombres": "ISRAEL SANTIAGO", "apellido_paterno": "LOPEZ", "apellido_materno": "CRUZ", "codigo_verificacion": 9, "fecha_nacimiento": "1998-07-21", "sexo": "MASCULINO", "estado_civil": "SOLTERO",
+            # "departamento": "AREQUIPA", "provincia": "AREQUIPA", "distrito": "CAYMA", "direccion": "URB LEON XIII M-10", "direccion_completa": "URB LEON XIII M-10, AREQUIPA - AREQUIPA - CAYMA", "ubigeo_reniec": "040102", "ubigeo_sunat": "040103", "ubigeo": ["04", "0401", "040103"]}}
+# {"success":false,"message":"DNI inv\u00e1lido"}
 
-    def get_object(self):
+class DNIDetail(APIView):
+    def get(self, request, numero):
         try:
-            numero = self.kwargs['numero']  # get the DNI from the URL
-            return super().get_object()
-        except Http404:
-            print("DNI not found:", numero)
+            try:
+                model = DNI.objects.get(numero=numero)
+                serializer = DNISerializer(model)
+                return Response({
+                    "statusCode": 200,
+                    "body": serializer.data
+                })
 
-            raise NotFound({
-                "statusCode": 404,
-                "body": {
-                    "errors": [
-                        {
-                            "message": "El DNI ("+numero+") ingresado no existe o no es válido"
+            except DNI.DoesNotExist:
+                url = f"https://dni.consultadatosreniec.online/consultafechan/{numero}"
+                # send a request
+                response = requests.get(url)
+                # get the response
+                data = response.json()
+                if data["success"]:
+                    model = {
+                        "numero": data["data"]["numero"],
+                        "nombres": data["data"]["nombres"],
+                        "apellido_paterno": data["data"]["apellido_paterno"],
+                        "apellido_materno": data["data"]["apellido_materno"],
+                        "ubigeo": data["data"]["ubigeo_reniec"],
+                        "departamento": data["data"]["departamento"],
+                        "provincia": data["data"]["provincia"],
+                        "distrito": data["data"]["distrito"],
+                        "direccion": data["data"]["direccion"],
+                    }
+                    serializer = DNISerializer(data=model)
+                    if serializer.is_valid():
+                        return Response({
+                            "statusCode": 200,
+                            "body": serializer.data
+                        })
+                    else:
+                        print("DNI serializer erros:", serializer.errors)
+                        raise NotFound({
+                            "statusCode": 404,
+                            "body": {
+                                "errors": [
+                                    {
+                                        "message": "El DNI ("+numero+") ingresado no existe o no es válido"
+                                    }
+                                ]
+                            }
+                        })
+                else:
+                    raise NotFound({
+                        "statusCode": 404,
+                        "body": {
+                            "errors": [
+                                {
+                                    "message": "El DNI ("+numero+") ingresado no existe o no es válido"
+                                }
+                            ]
                         }
-                    ]
-                }
-            })
+                    })
+
         except Exception as e:
             print("Error: ", e)
             raise APIException({
@@ -71,13 +112,48 @@ class DNIDetail(generics.RetrieveAPIView):
                 }
             })
 
-    def retrieve(self, request, *args, **kwargs):
-        instance = self.get_object()
-        serializer = self.get_serializer(instance)
-        return Response({
-            "statusCode": 200,
-            "body": serializer.data
-        })
+# class DNIDetail(generics.RetrieveAPIView):
+#     queryset = DNI.objects.all()
+#     serializer_class = DNISerializer
+#     lookup_field = 'numero'
+
+#     def get_object(self):
+#         try:
+#             numero = self.kwargs['numero']  # get the DNI from the URL
+#             return super().get_object()
+#         except Http404:
+#             print("DNI not found:", numero)
+
+#             raise NotFound({
+#                 "statusCode": 404,
+#                 "body": {
+#                     "errors": [
+#                         {
+#                             "message": "El DNI ("+numero+") ingresado no existe o no es válido"
+#                         }
+#                     ]
+#                 }
+#             })
+#         except Exception as e:
+#             print("Error: ", e)
+#             raise APIException({
+#                 "statusCode": 400,
+#                 "body": {
+#                     "errors": [
+#                         {
+#                             "message": "error en los datos ingresados"
+#                         }
+#                     ]
+#                 }
+#             })
+
+#     def retrieve(self, request, *args, **kwargs):
+#         instance = self.get_object()
+#         serializer = self.get_serializer(instance)
+#         return Response({
+#             "statusCode": 200,
+#             "body": serializer.data
+#         })
 
 
 class RUCDetail(generics.RetrieveAPIView):
