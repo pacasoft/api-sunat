@@ -1,58 +1,75 @@
-# Python Django
-# Test a Django project on multiple versions of Python.
+# Node.js with Angular
+# Build a Node.js project that uses Angular.
 # Add steps that analyze code, save build artifacts, deploy, and more:
-# https://docs.microsoft.com/azure/devops/pipelines/languages/python
+# https://docs.microsoft.com/azure/devops/pipelines/languages/javascript
 
 trigger:
 - main
 
+variables:
+  buildVersion: '1.0.0'
+
 pool:
   vmImage: ubuntu-latest
-strategy:
-  matrix:
-    Python35:
-      PYTHON_VERSION: '3.5'
-    Python36:
-      PYTHON_VERSION: '3.6'
-    Python37:
-      PYTHON_VERSION: '3.7'
-  maxParallel: 3
+ # creates an environment if it doesn't exist
+# environment: 
+#   name: 'facturacion-env'
+# environment: facturacion-env
+stages:
+  - stage: Build
+    jobs:
+    
+      - job: Build_Django_app 
+        displayName: 'Build and zip Django app'
+        steps:
+          - script: |
+              # Create a temporary directory to copy Django project files
+              mkdir temp_django_project
+              
+              # Copy Django project files excluding unwanted folders
+              rsync -av --exclude *.sqlite3 --exclude manage.py --exclude 'server/' --exclude */__pycache__  --exclude */Views/__pycache__ --exclude 'env39/' --exclude '.vscode/' --exclude 'migrations/' $(System.DefaultWorkingDirectory)/src/ temp_django_project/
 
-steps:
-- task: UsePythonVersion@0
-  inputs:
-    versionSpec: '$(PYTHON_VERSION)'
-    architecture: 'x64'
+              zip -r django-app-files.zip ./temp_django_project/*
 
-- task: PythonScript@0
-  displayName: 'Export project path'
-  inputs:
-    scriptSource: 'inline'
-    script: |
-      """Search all subdirectories for `manage.py`."""
-      from glob import iglob
-      from os import path
-      # Python >= 3.5
-      manage_py = next(iglob(path.join('**', 'manage.py'), recursive=True), None)
-      if not manage_py:
-          raise SystemExit('Could not find a Django project')
-      project_location = path.dirname(path.abspath(manage_py))
-      print('Found Django project in', project_location)
-      print('##vso[task.setvariable variable=projectRoot]{}'.format(project_location))
+            displayName: 'Copy Django Project Files'
 
-- script: |
-    python -m pip install --upgrade pip setuptools wheel
-    pip install -r requirements.txt
-    pip install unittest-xml-reporting
-  displayName: 'Install prerequisites'
+          - task: PublishPipelineArtifact@1
+            inputs:
+              targetPath: './django-app-files.zip'
+              artifact: 'django-app-files'
+            displayName: 'Publish Django App Files Artifact'
 
-- script: |
-    pushd '$(projectRoot)'
-    python manage.py test --testrunner xmlrunner.extra.djangotestrunner.XMLTestRunner --no-input
-  displayName: 'Run tests'
 
-- task: PublishTestResults@2
-  inputs:
-    testResultsFiles: "**/TEST-*.xml"
-    testRunTitle: 'Python $(PYTHON_VERSION)'
-  condition: succeededOrFailed()
+  - stage: Deploy
+    displayName: "Deploy to the main server"
+    dependsOn: Build
+    condition: succeeded()
+    jobs:
+    - deployment: Deploy
+      environment: prod-env
+      strategy:
+        runOnce:
+          deploy:
+            steps:
+              - download: current
+                artifact: django-app-files
+              - script: |
+                  # Unzip the Angular build artifact
+                  cd /home/vsts/work/1/django-app-files
+                  unzip ./django-app-files.zip -d ./django-app-files-unzip/
+                displayName: 'Unzip Django Build Artifact'
+              - task: FTPUpload@2  # Use FTPUpload task
+                displayName: "Upload Django app files"
+                inputs:
+                  credentialsOption: 'inputs'
+                  serverUrl: 'ftp://ftp.huellitasvetspa.com'  # Replace with your FTP server URL
+                  username: 'ftptechosur@techosur.com'  # Define FTP_USERNAME variable in Azure DevOps
+                  password: 'yfItyOQXx26Y'  # Define FTP_PASSWORD variable in Azure DevOps
+                  rootDirectory: '/home/vsts/work/1/django-app-files/django-app-files-unzip/temp_django_project'  # Path to your Angular build directory
+                  filePatterns: '**'
+                  preservePaths: true
+                  remoteDirectory: '/api-datos-sunat.pacasoft.cloud'  # Destination directory on the FTP server
+                  clean: false  # Clean remote directory before uploading
+                  trustSSL: true
+                  skipIfNotExists: true
+              
