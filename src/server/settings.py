@@ -39,9 +39,17 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'django_crontab',
     'rest_framework',  # Django REST Framework
+    'rest_framework.authtoken',
     'django_extensions',
     'sunat',
 ]
+
+REST_FRAMEWORK = {
+    'DEFAULT AUTHENTICATION CLASSES': [
+        'rest_framework.authentication.TokenAuthentication',
+    ]    
+}
+
 
 CRONJOBS = [
     # Run every day at midnight

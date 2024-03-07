@@ -1,5 +1,5 @@
 from django.db import models
-
+from rest_framework.authtoken.models import Token
 
 class DNI(models.Model):
     id = models.AutoField(primary_key=True)
