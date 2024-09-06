@@ -1,6 +1,7 @@
 from django.db import models
 from rest_framework.authtoken.models import Token
 
+
 class DNI(models.Model):
     id = models.AutoField(primary_key=True)
     numero = models.CharField(max_length=8, db_index=True)
@@ -8,6 +9,8 @@ class DNI(models.Model):
     apellido_paterno = models.CharField(max_length=200)
     apellido_materno = models.CharField(max_length=200)
     ubigeo = models.CharField(max_length=200, blank=True, null=True)
+    fecha_nacimiento = models.CharField(max_length=200, blank=True, null=True)
+    estado_civil = models.CharField(max_length=200, blank=True, null=True)
 
     provincia = models.CharField(max_length=200, blank=True, null=True)
     departamento = models.CharField(max_length=200, blank=True, null=True)

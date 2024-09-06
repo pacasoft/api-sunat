@@ -6,7 +6,8 @@ from bs4 import BeautifulSoup
 import zipfile
 import sqlite3
 from sunat.models import RUC
-import os
+
+from datetime import datetime
 # from sqlalchemy import create_engine, MetaData, Table
 # from sqlalchemy.schema import drop
 
@@ -30,26 +31,7 @@ class ExtractPadron:
 
         # get the file
         file = requests.get(link)
-
-        new_file_name = 'padron_reducido_ruc.zip'
-        old_file_name = 'old_padron_reducido_ruc.zip'
-
-        open(new_file_name, 'wb').write(file.content)
-
-        if os.path.exists(old_file_name):
-            # compare their sizes
-            old_file_size = os.path.getsize(old_file_name)
-            new_file_size = os.path.getsize(new_file_name)
-
-            if old_file_size == new_file_size:
-                print('El padron de ruc no ha cambiado...')
-                return ['same_padron']
-            else:
-                print('El padron de ruc ha cambiado...')
-                # os.rename(old_file_name, new_file_name)
-
-        else:
-            print('El padron de ruc ha cambiado...')
+        open(link.split('/')[-1], 'wb').write(file.content)
 
         file_name = 'padron_reducido_ruc.zip'
         with zipfile.ZipFile(file_name, 'r') as zip_ref:
@@ -167,18 +149,12 @@ class ExtractPadron:
 
     def export_to_sqlite(self):
         try:
-            print('started export_to_sqlite')
+            print()
+            print('started export_to_sqlite on date:', datetime.now())
             logging.error('started export_to_sqlite')
             start_time = time.time()
 
             file_name = self.download_and_extract_padron()
-            if file_name == 'same_padron':
-                return Response({'message': 'El padron de ruc no ha cambiado...'})
-
-            new_file_name = 'padron_reducido_ruc.zip'
-            old_file_name = 'old_padron_reducido_ruc.zip'
-            os.rename(new_file_name, old_file_name)
-
             print("Time download_and_extract_padron:",
                   (time.time() - start_time)/60, "minutes")
             logging.error("Time download_and_extract_padron: " +
@@ -203,10 +179,9 @@ class ExtractPadron:
 
             print("Start reading file")
             logging.error("Start reading file")
-            with open('padron_reducido_ruc_activo.txt', 'r', encoding='ISO-8859-1') as activo_file:
-                self.add_to_database(activo_file)
-
             with open('padron_reducido_ruc_no_activo.txt', 'r', encoding='ISO-8859-1') as activo_file:
+                self.add_to_database(activo_file)
+            with open('padron_reducido_ruc_activo.txt', 'r', encoding='ISO-8859-1') as activo_file:
                 self.add_to_database(activo_file)
 
             conn = sqlite3.connect("db.sqlite3")
@@ -214,9 +189,12 @@ class ExtractPadron:
 
             quer = sql_cur.execute("SELECT * FROM sunat_ruc LIMIT 10")
             rows = quer.fetchall()
+            print("----------EXAMPLE ROWS----------")
             for row in rows:
                 print(row)
                 logging.error(row)
+
+            print()
 
             return Response({'message': 'Export to SQLite completed successfully'})
 
